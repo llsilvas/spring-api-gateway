@@ -1,0 +1,24 @@
+services:
+  spring-api-gateway:
+    image: spring-api-gateway:latest
+    container_name: spring-api-gateway
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+    ports:
+      - "9999:9999"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
+      - LOKI_URL="loki"
+    restart: unless-stopped
+    networks:
+      - labs
+networks:
+  labs:
+    external: true

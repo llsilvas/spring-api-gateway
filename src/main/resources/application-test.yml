@@ -1,0 +1,7 @@
+spring:
+  cloud:
+    config:
+      profile: test
+
+loki:
+  url: "http://localhost:3100/loki/api/v1/push"

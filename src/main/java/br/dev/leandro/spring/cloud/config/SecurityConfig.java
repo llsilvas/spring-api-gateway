@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import reactor.core.publisher.Mono;
 
@@ -18,20 +19,17 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(exchange -> exchange
+                .authorizeExchange(auth -> auth
                         .pathMatchers("/actuator/**").permitAll()
-                        .pathMatchers("/service1/**").hasRole("ADMIN")
+                        .pathMatchers("/users/admin/**").hasRole("app_admin")
+                        .pathMatchers("/users/user/**").hasRole("app_user")
+                        .pathMatchers("/users/useradmin/**").hasRole("app_user")
                         .anyExchange().authenticated()
                 )
-                .oauth2ResourceServer(oAuth2 -> oAuth2.jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtAuthenticationConverter())) )
-                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-                .formLogin(ServerHttpSecurity.FormLoginSpec::disable);
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(new CustomJwtAuthenticationConverter()))
+                );
 
         return http.build();
-    }
-
-    @Bean
-    public Converter<Jwt, Mono<AbstractAuthenticationToken>> customJwtAuthenticationConverter() {
-        return new CustomJwtAuthenticationConverter();
     }
 }

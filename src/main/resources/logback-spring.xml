@@ -48,10 +48,10 @@
                     <pattern>
                         {
                         "level": "%level",
-                        "class": "%logger{36}",
+                        "logger": "%logger",
                         "thread": "%thread",
-                        "message": "%message"
-                        <!--                    "requestId": "%X{X-Request-ID}"-->
+                        "message": "%message",
+                        "mdc": %mdc
                         }
                     </pattern>
                 </message>

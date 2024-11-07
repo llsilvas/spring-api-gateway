@@ -1,4 +1,4 @@
-package br.dev.leandro.spring.cloud.filter;
+package br.dev.leandro.spring.cloud.filters;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +34,18 @@ public class AuditGlobalFilter implements GlobalFilter, Ordered {
         Instant startTime = Instant.now();
         logRequest(exchange, correlationId);
 
+        ServerHttpRequest mutatedRequest = getMutatedRequest(exchange, correlationId);
+
+        ServerWebExchange mutatedExchange = exchange.mutate()
+                .request(mutatedRequest)
+                .build();
+
+        ModifyResponseBodyGatewayFilterFactory.Config config = logResponse(correlationId, startTime);
+
+        return modifyResponseBodyFilter.apply(config).filter(mutatedExchange, chain);
+    }
+
+    private static ServerHttpRequest getMutatedRequest(ServerWebExchange exchange, String correlationId) {
         // Criar novos headers e copiar os existentes
         HttpHeaders newHeaders = new HttpHeaders();
         newHeaders.putAll(exchange.getRequest().getHeaders());
@@ -46,15 +58,7 @@ public class AuditGlobalFilter implements GlobalFilter, Ordered {
                 return newHeaders;
             }
         };
-        
-        ServerWebExchange mutatedExchange = exchange.mutate()
-                .request(mutatedRequest)
-                .build();
-
-        ModifyResponseBodyGatewayFilterFactory.Config config = logResponse(correlationId, startTime);
-
-        // Aplicar o filtro de modificação da resposta
-        return modifyResponseBodyFilter.apply(config).filter(mutatedExchange, chain);
+        return mutatedRequest;
     }
 
     private static ModifyResponseBodyGatewayFilterFactory.Config logResponse(String correlationId, Instant startTime) {

@@ -22,7 +22,6 @@ public class CustomJwtAuthenticationConverter implements Converter<Jwt, Mono<Abs
     public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
         Collection<GrantedAuthority> authorities = extractAuthorities(jwt);
 
-        // Cria um JwtAuthenticationToken com as authorities extraídas
         return Mono.just(new JwtAuthenticationToken(jwt, authorities));
     }
 

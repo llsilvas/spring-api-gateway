@@ -45,6 +45,8 @@ ENV JAVA_OPTS=""
 ENV SPRING_PROFILES_ACTIVE=""
 ENV LOKI_URL="loki"
 
+ENV KEYCLOAK_URL=""
+
 EXPOSE 9999
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]

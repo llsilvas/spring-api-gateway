@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(auth -> auth
                         .pathMatchers("/actuator/**").permitAll()
+                        .pathMatchers("/fallback/**").permitAll()
                         .pathMatchers("/users/admin/**").hasRole("app_admin")
                         .pathMatchers("/users/user/**").hasRole("app_user")
                         .pathMatchers("/users/useradmin/**").hasRole("app_user")

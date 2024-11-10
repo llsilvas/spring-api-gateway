@@ -5,7 +5,10 @@ spring:
     name: spring-api-gateway
   config:
     import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
-
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: 5672
+    connection-timeout: 5
   security:
     oauth2:
       resourceserver:

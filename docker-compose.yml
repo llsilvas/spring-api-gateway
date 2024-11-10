@@ -5,11 +5,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '1.5'
+          memory: 512M
         reservations:
-          cpus: '0.5'
-          memory: 128M
+          cpus: '1.0'
+          memory: 256M
     ports:
       - "9999:9999"
     environment:
@@ -17,9 +17,11 @@ services:
       - SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
       - LOKI_URL="loki"
       - KEYCLOAK_URL=${KEYCLOAK_URL}
-    restart: unless-stopped
+      - SPRING_RABBITMQ_HOST=${SPRING_RABBITMQ_HOST}
     networks:
       - labs
+
+
 networks:
   labs:
     external: true

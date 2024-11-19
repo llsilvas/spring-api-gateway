@@ -8,7 +8,4 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface AuditLogRepository extends ReactiveElasticsearchRepository<AuditLog, String> {
 
-    Flux<AuditLog> findByMethod(String method);
-
-
 }

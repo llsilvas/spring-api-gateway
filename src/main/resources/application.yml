@@ -66,17 +66,15 @@ resilience4j:
 
 logging:
   level:
-    root: INFO
-    org.springframework.data.elasticsearch: INFO
-    org.elasticsearch.client: INFO
+    root: DEBUG
     br.dev.leandro.spring.cloud.filter.AuditGlobalFilter: INFO
-    org.springframework.cloud.gateway: DEBUG
     org.springframework.web: INFO
     org.springframework.boot: INFO
-    io.github.resilience4j.circuitbreaker: DEBUG
     org.springframework.cloud: INFO
-    org.springframework.cloud.config: INFO
-    com.github.loki4j.logback: INFO
     org.springframework.security: INFO
-    org.springframework.cloud.bus: INFO
+    org.elasticsearch.client: INFO
+    org.springframework.data.elasticsearch: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    io.github.resilience4j: DEBUG
     reactor.netty: DEBUG
+    com.github.loki4j.logback: INFO

@@ -1,5 +1,6 @@
 package br.dev.leandro.spring.cloud.audit.model;
 
+import br.dev.leandro.spring.cloud.jwt.JwtToken;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,9 +8,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
-
-import java.time.LocalDateTime;
-import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -25,30 +23,15 @@ public class AuditLog {
     @Field(type = FieldType.Text)
     private String criado;
 
-    @Field(type = FieldType.Keyword)
-    private String method;
-
     @Field(type = FieldType.Text)
     private String endpoint;
 
-    @Field(type = FieldType.Text)
-    private String requestBody;
+    @Field(type = FieldType.Nested, includeInParent = true)
+    private RequestLog request;
 
-    @Field(type = FieldType.Integer)
-    private int responseStatus;
+    @Field(type = FieldType.Nested, includeInParent = true)
+    private ResponseLog response;
 
-    @Field(type = FieldType.Text)
-    private String responseBody;
-
-    @Field(type = FieldType.Object)
-    private Map<String, String> requestHeaders;
-
-    @Field(type = FieldType.Object)
-    private Map<String, String> responseHeaders;
-
-    @Field(type = FieldType.Object)
-    private Map<String, String> requestParams;
-
-    private String tipo;
+    private JwtToken jwtToken;
 
 }

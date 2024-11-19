@@ -15,4 +15,68 @@ spring:
         jwt:
           jwk-set-uri: http://${KEYCLOAK_URL:localhost:8090}/realms/myrealm/protocol/openid-connect/certs
 
+  elasticsearch:
+    client:
+      elc:
+        default:
+          uris: localhost:9200
+          username: elastic
+          password: admin
+    repositories:
+      enabled: true
+    # Rotas para serviços externos
+  cloud:
+    gateway:
+      routes:
+      - id: users
+        uri: http://localhost:8091
+        predicates:
+          - Path=/users/**
+        filters:
+          - name: CircuitBreaker
+            args:
+              name: userServiceCircuitBreaker
+              fallbackUri: forward:/fallback/user
+      - id: produtos
+        uri: http://localhost:8092
+        predicates:
+          - Path=/produtos/**
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state:
+          seconds: 30
+        permitted-number-of-calls-in-half-open-state: 3
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 100
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
 
+
+logging:
+  level:
+    root: INFO
+    org.springframework.data.elasticsearch: INFO
+    org.elasticsearch.client: INFO
+    br.dev.leandro.spring.cloud.filter.AuditGlobalFilter: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: INFO
+    org.springframework.boot: INFO
+    io.github.resilience4j.circuitbreaker: DEBUG
+    org.springframework.cloud: INFO
+    org.springframework.cloud.config: INFO
+    com.github.loki4j.logback: INFO
+    org.springframework.security: INFO
+    org.springframework.cloud.bus: INFO
+    reactor.netty: DEBUG

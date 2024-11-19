@@ -1,16 +1,11 @@
 package br.dev.leandro.spring.cloud.config;
 
+import br.dev.leandro.spring.cloud.jwt.CustomJwtAuthenticationConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -25,6 +20,7 @@ public class SecurityConfig {
                         .pathMatchers("/users/admin/**").hasRole("app_admin")
                         .pathMatchers("/users/user/**").hasRole("app_user")
                         .pathMatchers("/users/useradmin/**").hasRole("app_user")
+                        .pathMatchers("/users/user/usuario/**").hasRole("app_user")
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

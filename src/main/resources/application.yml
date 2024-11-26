@@ -3,12 +3,6 @@ server:
 spring:
   application:
     name: spring-api-gateway
-  config:
-    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
-  rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: 5672
-    connection-timeout: 5
   security:
     oauth2:
       resourceserver:
@@ -37,10 +31,7 @@ spring:
             args:
               name: userServiceCircuitBreaker
               fallbackUri: forward:/fallback/user
-      - id: produtos
-        uri: http://localhost:8092
-        predicates:
-          - Path=/produtos/**
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -66,15 +57,15 @@ resilience4j:
 
 logging:
   level:
-    root: DEBUG
+    root: INFO
     br.dev.leandro.spring.cloud.filter.AuditGlobalFilter: INFO
     org.springframework.web: INFO
     org.springframework.boot: INFO
     org.springframework.cloud: INFO
     org.springframework.security: INFO
     org.elasticsearch.client: INFO
-    org.springframework.data.elasticsearch: DEBUG
-    org.springframework.cloud.gateway: DEBUG
-    io.github.resilience4j: DEBUG
-    reactor.netty: DEBUG
+    org.springframework.data.elasticsearch: INFO
+    org.springframework.cloud.gateway: INFO
+    io.github.resilience4j: INFO
+    reactor.netty: INFO
     com.github.loki4j.logback: INFO

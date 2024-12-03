@@ -54,6 +54,10 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 30s
 
+bio:
+  auditoria:
+    prefixo: audit_logs_
+    date-format: MM_yyyy
 
 logging:
   level:

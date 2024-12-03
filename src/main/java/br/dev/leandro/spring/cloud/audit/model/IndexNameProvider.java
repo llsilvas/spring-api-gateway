@@ -1,17 +1,25 @@
 package br.dev.leandro.spring.cloud.audit.model;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-@Component("indexNameProvider")
+@Component
 public class IndexNameProvider {
 
-    private static final String INDEX_PREFIX = "audit_logs_";
-    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM_yyyy");
+    @Value("${bio.auditoria.prefixo:audit_logs_}")
+    private String indexPrefix;
 
-    public static String getIndexName() {
-        return INDEX_PREFIX + LocalDateTime.now().format(dateTimeFormatter);
+    @Value("${bio.auditoria.date-format:MM_yyyy}")
+    private String dateFormat;
+
+    public String getIndexName() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateFormat);
+        if (indexPrefix == null || indexPrefix.isEmpty()) {
+            throw new IllegalStateException("O prefixo do índice (bio.auditoria.prefixo) não está configurado.");
+        }
+        return indexPrefix + LocalDateTime.now().format(formatter);
     }
 }

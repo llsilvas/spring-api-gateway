@@ -1,59 +1,40 @@
-FROM eclipse-temurin:21 as builder
-# First stage : Extract the layers
-WORKDIR /@project.name@
+# Stage 1: Build stage
+FROM maven:3.9.5-eclipse-temurin-21 as builder
+WORKDIR /app
 
-ADD ./ /@project.name@
+# Copia o pom.xml e baixa as dependências
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-ARG JAR_FILE=*.jar
-COPY ${JAR_FILE} app.jar
+# Copia o código-fonte
+COPY src ./src
 
-RUN java -Djarmode=layertools -jar app.jar extract
+# Compila o projeto e gera o JAR
+RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:21-jre-jammy as final
-# Cria o usuário e grupo spring
-RUN addgroup --system spring && adduser --system --ingroup spring spring
+# Extrai as camadas usando o novo modo tools
+RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher
 
-# Instala tzdata, bash e curl para dockerize
-RUN apt-get update && apt-get install -y tzdata bash curl && rm -rf /var/lib/apt/lists/*
+# Stage 2: Runtime stage
+FROM eclipse-temurin:21-jre-jammy as runtime
+WORKDIR /app
 
-# Define o timezone desejado enquanto ainda é root
-RUN ln -snf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime && echo "America/Sao_Paulo" > /etc/timezone
+# Copia o JAR da aplicação
+COPY --from=builder app/target/*.jar app.jar
 
-# Define o diretório de trabalho
-WORKDIR /@project.name@
-
-## Second stage : Copy the extracted layers
-COPY --from=builder /@project.name@/dependencies/ ./
-COPY --from=builder /@project.name@/spring-boot-loader/ ./
-COPY --from=builder /@project.name@/snapshot-dependencies/ ./
-COPY --from=builder /@project.name@/application/ ./
-COPY --from=builder /@project.name@/target/*.jar app.jar
-
-# Copia o script wait-for-it.sh
-COPY wait-for-it.sh .
-
-# Torna o script executável
-RUN chmod +x wait-for-it.sh
-
-# Instala o dockerize
-ENV DOCKERIZE_VERSION v0.6.1
-RUN curl -LO https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz \
-    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz \
-    && rm dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz
-
-# Altera o dono do diretório de trabalho
-RUN chown -R spring:spring /@project.name@
-
-# Altera o usuário para o usuário não root
-USER spring:spring
+# Copia as camadas extraídas
+COPY --from=builder /app/@project.name@/dependencies/ ./
+COPY --from=builder /app/@project.name@/spring-boot-loader/ ./
+COPY --from=builder /app/@project.name@/snapshot-dependencies/ ./
+COPY --from=builder /app/@project.name@/application/ ./
 
 # Define variáveis de ambiente
-ENV JAVA_OPTS=""
 ENV SPRING_PROFILES_ACTIVE=""
 ENV LOKI_URL="loki"
-ENV KEYCLOAK_URL=""
+ENV KEYCLOAK_URL=${KEYCLOAK_URL}
 
+# Exposição da porta da aplicação
 EXPOSE 9999
 
-# Define o ENTRYPOINT com dockerize para aguardar o serviço e iniciar a aplicação
-ENTRYPOINT ["dockerize", "-wait", "tcp://spring-config-server:8888", "-timeout", "60s", "java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+# Inicia a aplicação com o launcher do Spring Boot
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]

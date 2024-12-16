@@ -16,3 +16,7 @@ spring:
           jwk-set-uri: http://${KEYCLOAK_URL:localhost:8090}/realms/myrealm/protocol/openid-connect/certs
 
 
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG
+    org.springframework.web.client: DEBUG

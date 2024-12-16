@@ -35,13 +35,11 @@ public class AuditGlobalFilter implements GlobalFilter, Ordered {
         logRequest(exchange, correlationId);
 
         ServerHttpRequest mutatedRequest = getMutatedRequest(exchange, correlationId);
-
         ServerWebExchange mutatedExchange = exchange.mutate()
                 .request(mutatedRequest)
                 .build();
 
         ModifyResponseBodyGatewayFilterFactory.Config config = logResponse(correlationId, startTime);
-
         return modifyResponseBodyFilter.apply(config).filter(mutatedExchange, chain);
     }
 
@@ -52,13 +50,12 @@ public class AuditGlobalFilter implements GlobalFilter, Ordered {
         newHeaders.add("X-Correlation-Id", correlationId);
 
         // Criar um novo ServerHttpRequest com os novos headers
-        ServerHttpRequest mutatedRequest = new ServerHttpRequestDecorator(exchange.getRequest()) {
+        return new ServerHttpRequestDecorator(exchange.getRequest()) {
             @Override
             public HttpHeaders getHeaders() {
                 return newHeaders;
             }
         };
-        return mutatedRequest;
     }
 
     private static ModifyResponseBodyGatewayFilterFactory.Config logResponse(String correlationId, Instant startTime) {

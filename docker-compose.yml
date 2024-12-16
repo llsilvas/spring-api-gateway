@@ -20,8 +20,6 @@ services:
       - SPRING_RABBITMQ_HOST=${SPRING_RABBITMQ_HOST}
     networks:
       - labs
-
-
 networks:
   labs:
     external: true

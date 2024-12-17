@@ -5,18 +5,28 @@ spring:
     name: spring-api-gateway
   config:
     import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
-  rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: 5672
-    connection-timeout: 5
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8090}/realms/myrealm/protocol/openid-connect/certs
-
-
-logging:
-  level:
-    org.springframework.cloud.config: DEBUG
-    org.springframework.web.client: DEBUG
+#  rabbitmq:
+#    host: ${SPRING_RABBITMQ_HOST:localhost}
+#    port: 5672
+#    connection-timeout: 5
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+##          jwk-set-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management/protocol/openid-connect/certs
+#          issuer-uri: http://${KEYCLOAK_URL:localhost:8443}/realms/event-management
+#  cloud:
+#    gateway:
+#      routes:
+#        - id: user-service
+#          uri: http://localhost:8091 # Endereço do User Service
+#          predicates:
+#            - Path=/api/users/** # Requisições que começam com /api/users/
+#
+#
+#
+#logging:
+#  level:
+#    org.springframework.cloud.config: DEBUG
+#    org.springframework.web.client: DEBUG
+#debug: true

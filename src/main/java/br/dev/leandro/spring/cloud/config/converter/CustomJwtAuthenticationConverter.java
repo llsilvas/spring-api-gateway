@@ -1,4 +1,4 @@
-package br.dev.leandro.spring.cloud.config;
+package br.dev.leandro.spring.cloud.config.converter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class JwtAuthenticationConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
+public class CustomJwtAuthenticationConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
 
     @Override
     public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
@@ -33,7 +33,7 @@ public class JwtAuthenticationConverter implements Converter<Jwt, Mono<AbstractA
         if (roles instanceof List<?>) {
             return ((List<?>) roles).stream()
                     .filter(role -> role instanceof String)
-                    .map(role -> "ROLE_" + role)
+                    .map(role -> "ROLE_" + ((String) role).toUpperCase())
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
         }

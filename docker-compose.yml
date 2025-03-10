@@ -18,6 +18,11 @@ services:
       - LOKI_URL="loki"
       - KEYCLOAK_URL=${KEYCLOAK_URL}
       - SPRING_RABBITMQ_HOST=${SPRING_RABBITMQ_HOST}
+      - OTEL_SERVICE_NAME=spring-api-gateway
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none  # Desativa o envio de métricas
     networks:
       - labs
 networks:

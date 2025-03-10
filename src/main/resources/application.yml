@@ -30,3 +30,15 @@ spring:
 #    org.springframework.cloud.config: DEBUG
 #    org.springframework.web.client: DEBUG
 #debug: true
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # 100% das requisições serão rastreadas
+
+logging:
+  pattern:
+    correlation: '%X{traceId:-} %X{spanId:-}'
+    level: '%-5level [${spring.application.name}]'
+  include-application-name: true
+  level:
+    root: INFO

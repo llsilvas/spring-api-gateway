@@ -104,6 +104,30 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-spring-boot-starter</artifactId>
+            <version>2.12.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+        <!-- Micrometer Tracing para OpenTelemetry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+        <!-- Propagação de contexto -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>context-propagation</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+
     </dependencies>
     <dependencyManagement>
         <dependencies>

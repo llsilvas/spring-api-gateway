@@ -1,0 +1,51 @@
+spring:
+  cloud:
+    config:
+      profile: test
+
+
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:${wiremock.server.port}
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback/user # Confirme este caminho
+                statusCodes: 500,503,404
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:${wiremock.server.port}/auth/realms/myrealm
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceCB:
+        registerHealthIndicator: true
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        permittedNumberOfCallsInHalfOpenState: 1
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 1s
+        sliding-window-type: COUNT_BASED
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  timelimiter:
+    instances:
+      userServiceCB:
+        timeoutDuration: 2000ms  # Deve ser maior que slowCallDurationThreshold
+wiremock:
+  mappings:
+    response-templates:
+      enabled: true
+
+logging:
+  level:
+    io.github.resilience4j.circuitbreaker: DEBUG

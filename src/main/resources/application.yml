@@ -1,60 +1,99 @@
 server:
-  port: 9999
+  port: 9999 # Porta onde o gateway será exposto
+
 spring:
   application:
     name: spring-api-gateway
-#  config:
-#    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
+
+
+
+    # === CONFIG SERVER (desativado no momento) ===
+    # Para ativar, remova o comentário abaixo e ajuste o endereço:
+  #  config:
+  #    import: optional:configserver:http://${SPRING_CONFIG_SERVER:localhost}:8888 # URL do Config Server
 
   cloud:
     config:
       enabled: false
 
-    # Rotas para serviços externos
-
+    # === SPRING CLOUD GATEWAY ===
     gateway:
+#      # Filtros aplicados a todas as rotas (global)
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 10  # Limite por segundo
+            redis-rate-limiter.burstCapacity: 20  # Pico permitido
+        - name: RequestHeaderToRequestUri
+          args:
+            name: X-Request-Id
+
+      # === ROTAS DEFINIDAS ===
       routes:
         - id: user-service
-          uri: http://localhost:8091 # Endereço do User Service
+          uri: http://localhost:8091 # Endereço do serviço de usuários
           predicates:
-            - Path=/api/users/** # Requisições que começam com /api/users/
+            - Path=/api/users/** # Mapeia chamadas que iniciam com /api/users
           filters:
+            - RewritePath=/api/users/(?<segment>.*), /users/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5        # 5 requisições por segundo
+                redis-rate-limiter.burstCapacity: 10       # capacidade de "explosão"
+                key-resolver: "#{@ipKeyResolver}"          # resolve a chave por IP
             - name: CircuitBreaker
               args:
                 name: userServiceCB
                 fallbackUri: forward:/fallback/user
-                statusCode: 500,503,404
+          metadata:
+            response-timeout: 200
+            connect-timeout: 200
+
+  # === SEGURANÇA / JWT ===
   security:
     oauth2:
       resourceserver:
         jwt:
+          # Somente issuer-uri é suficiente para validar JWTs via OIDC
           issuer-uri: http://${KEYCLOAK_URL:localhost}:8443/realms/event-management
-          jwk-set-uri: http://${KEYCLOAK_URL:localhost}:8443/realms/event-management/protocol/openid-connect/certs
+
+  # === KEYCLOAK ADMIN (usado para integração administrativa) ===
   keycloak:
     admin:
       client-id: ${KEYCLOAK_CLIENT_ID:user-service-admin}
-      client-secret: ${KEYCLOAK_CLIENT_SECRET:default-secret}  # Nunca manter senhas reais aqui, apenas para fallback
+      client-secret: ${KEYCLOAK_CLIENT_SECRET:default-secret} # Use Secrets seguros fora do código
       auth-server-url: http://${KEYCLOAK_AUTH_SERVER_URL:localhost:8443}
       realm: ${KEYCLOAK_REALM:event-management}
 
+  # === RABBITMQ CONFIG ===
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: 5672
-    connection-timeout: 5
+    connection-timeout: 5s
 
+# === OTEL CONFIG (OpenTelemetry desativado por padrão) ===
+otel:
+  logs:
+    exporter: none
+  metrics:
+    exporter: none
+
+# === EXPORTAÇÃO DE LOGS PARA LOKI ===
 loki:
   url: "http://${LOKI_URL:localhost}:3100/loki/api/v1/push"
   jobName: ${LOKI_JOB_NAME:spring-event-service}
 
+# === ACTUATOR / MANAGEMENT ===
 management:
   endpoints:
     web:
       exposure:
-        include: health, metrics, prometheus, info, refresh, bus-refresh, circuitbreakers
+        include: health, metrics, prometheus, info, refresh, circuitbreakers
   tracing:
     sampling:
-      probability: 1.0  # 100% das requisições serão rastreadas
+      probability: 1.0 # 100% das requisições serão rastreadas
 
+# === RESILIENCE4J - CIRCUIT BREAKER CONFIG ===
 resilience4j:
   circuitbreaker:
     instances:
@@ -69,6 +108,7 @@ resilience4j:
         slowCallRateThreshold: 50
         slowCallDurationThreshold: 2s
 
+# === LOGGING E OBSERVABILIDADE ===
 logging:
   pattern:
     correlation: '%X{traceId:-} %X{spanId:-}'
@@ -85,8 +125,8 @@ logging:
     org.keycloak: INFO
     io.opentelemetry: INFO
     io.micrometer: INFO
-otel:
-  logs:
-    exporter: none
-  metrics:
-    exporter: none
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter: INFO
+    org.springframework.data.redis: INFO
+    io.lettuce.core: INFO
+

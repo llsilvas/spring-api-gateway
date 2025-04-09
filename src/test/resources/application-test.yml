@@ -3,7 +3,6 @@ spring:
     config:
       profile: test
 
-
     gateway:
       routes:
         - id: user-service
@@ -49,3 +48,4 @@ wiremock:
 logging:
   level:
     io.github.resilience4j.circuitbreaker: DEBUG
+    com.github.tomakehurst.wiremock: DEBUG

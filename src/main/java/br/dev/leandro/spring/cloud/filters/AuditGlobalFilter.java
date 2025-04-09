@@ -71,7 +71,7 @@ public class AuditGlobalFilter implements GlobalFilter, Ordered {
                     correlationId, statusCode, originalBody, duration);
 
             // Retornar o corpo original sem modificações
-            return Mono.just(originalBody);
+            return Mono.justOrEmpty(originalBody);
         });
         return config;
     }

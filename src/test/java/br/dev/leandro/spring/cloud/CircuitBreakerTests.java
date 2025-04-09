@@ -43,12 +43,7 @@ public class CircuitBreakerTests {
     }
 
     private void stubUserApiResponse(int status, String body, int delay) {
-        stubFor(get(urlEqualTo(USER_API_PATH))
-                .willReturn(aResponse()
-                        .withStatus(status)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(body)
-                        .withFixedDelay(delay)));
+        stubFor(get(urlEqualTo(USER_API_PATH)).willReturn(aResponse().withStatus(status).withHeader("Content-Type", "application/json").withBody(body).withFixedDelay(delay)));
     }
 
     private void stubSuccessfulUserApiResponse() {
@@ -65,10 +60,7 @@ public class CircuitBreakerTests {
 
     private void makeApiCalls(int times, int expectedStatus) {
         IntStream.range(0, times).forEach(i -> {
-            webClient.get()
-                    .uri(USER_API_PATH)
-                    .exchange()
-                    .expectStatus().isEqualTo(expectedStatus);
+            webClient.get().uri(USER_API_PATH).exchange().expectStatus().isEqualTo(expectedStatus);
         });
     }
 
@@ -81,13 +73,7 @@ public class CircuitBreakerTests {
 
         @Test
         void shouldReturnUserSuccessfully() {
-            webClient.get()
-                    .uri(USER_API_PATH)
-                    .exchange()
-                    .expectStatus().isOk()
-                    .expectBody()
-                    .jsonPath("$.id").isEqualTo(1)
-                    .jsonPath("$.name").isEqualTo("John Doe");
+            webClient.get().uri(USER_API_PATH).exchange().expectStatus().isOk().expectBody().jsonPath("$.id").isEqualTo(1).jsonPath("$.name").isEqualTo("John Doe");
         }
 
         @Test
@@ -104,8 +90,6 @@ public class CircuitBreakerTests {
         void setUp() {
             stubSlowUserApiResponse();
         }
-
-
 
         @Test
         void shouldOpenCircuitBreakerWhenSlowCallThresholdExceeded() {
@@ -141,28 +125,17 @@ public class CircuitBreakerTests {
             assertThat(circuitBreaker.getState()).isEqualTo(CircuitBreaker.State.OPEN);
 
             // Verifica resposta de fallback
-            webClient.get()
-                    .uri(USER_API_PATH)
-                    .exchange()
-                    .expectStatus().isEqualTo(503)
-                    .expectBody(String.class)
-                    .value(response -> assertThat(response).contains(FALLBACK_RESPONSE_PHRASE));
+            webClient.get().uri(USER_API_PATH).exchange().expectStatus().isEqualTo(503).expectBody(String.class).value(response -> assertThat(response).contains(FALLBACK_RESPONSE_PHRASE));
         }
 
 
         @Test
-        void shouldReturnConsistentErrorFormat1(){
-            webClient.get()
-                    .uri(USER_API_PATH)
-                    .exchange()
-                    .expectStatus().isEqualTo(503)
-                    .expectHeader().contentType("text/plain;charset=UTF-8")
-                    .expectBody(String.class)
-                    .value(response -> {
+        void shouldReturnConsistentErrorFormat1() {
+            webClient.get().uri(USER_API_PATH).exchange().expectStatus().isEqualTo(503).expectHeader().contentType("text/plain;charset=UTF-8").expectBody(String.class).value(response -> {
 
 //                        assertThat(response).contains("Service Unavailable");
-                        assertThat(response).contains(FALLBACK_RESPONSE_PHRASE);
-                    });
+                assertThat(response).contains(FALLBACK_RESPONSE_PHRASE);
+            });
 
         }
 
@@ -198,13 +171,9 @@ public class CircuitBreakerTests {
         });
 
         // Fase 3: Verifica meio-aberto
-        webClient.get()
-                .uri(USER_API_PATH)
-                .exchange()
-                .expectStatus().isOk();
+        webClient.get().uri(USER_API_PATH).exchange().expectStatus().isOk();
 
         // Fase 4: Verifica se fechou após sucesso
-        await().atMost(1, SECONDS)
-                .until(() -> circuitBreaker.getState() == CircuitBreaker.State.CLOSED);
+        await().atMost(1, SECONDS).until(() -> circuitBreaker.getState() == CircuitBreaker.State.CLOSED);
     }
 }

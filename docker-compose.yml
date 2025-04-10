@@ -22,7 +22,10 @@ services:
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_LOGS_EXPORTER=none
-      - OTEL_METRICS_EXPORTER=none  # Desativa o envio de métricas
+      - OTEL_METRICS_EXPORTER=none
+      - USER_SERVICE_URL=spring-user
+      - REDIS_URL=redis
+      - JAVA_OPTS=${JAVA_OPTS}
     networks:
       - labs
 networks:

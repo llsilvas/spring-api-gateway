@@ -6,7 +6,6 @@ spring:
     name: spring-api-gateway
 
 
-
     # === CONFIG SERVER (desativado no momento) ===
     # Para ativar, remova o comentário abaixo e ajuste o endereço:
   #  config:
@@ -19,35 +18,39 @@ spring:
     # === SPRING CLOUD GATEWAY ===
     gateway:
 #      # Filtros aplicados a todas as rotas (global)
+      redis-rate-limiter:
+          replenish-rate: 5
+          burst-capacity: 10
+          requested-tokens: 1
+
       default-filters:
         - name: RequestRateLimiter
           args:
             redis-rate-limiter.replenishRate: 10  # Limite por segundo
             redis-rate-limiter.burstCapacity: 20  # Pico permitido
-        - name: RequestHeaderToRequestUri
-          args:
-            name: X-Request-Id
+            key-resolver: "#{@ipKeyResolver}"     # resolve a chave por IP
+
 
       # === ROTAS DEFINIDAS ===
       routes:
         - id: user-service
-          uri: http://localhost:8091 # Endereço do serviço de usuários
+          uri: http://${USER_SERVICE_URL:localhost}:8091 # Endereço do serviço de usuários
           predicates:
             - Path=/api/users/** # Mapeia chamadas que iniciam com /api/users
           filters:
             - RewritePath=/api/users/(?<segment>.*), /users/${segment}
-            - name: RequestRateLimiter
+            - name: CustomRateLimiterFilter
               args:
-                redis-rate-limiter.replenishRate: 5        # 5 requisições por segundo
-                redis-rate-limiter.burstCapacity: 10       # capacidade de "explosão"
-                key-resolver: "#{@ipKeyResolver}"          # resolve a chave por IP
+                routeId: user-service
+                limit: 10
+                windowsMs: 5000
             - name: CircuitBreaker
               args:
                 name: userServiceCB
-                fallbackUri: forward:/fallback/user
+                fallbackUri: forward:/fallback/handle
           metadata:
-            response-timeout: 200
-            connect-timeout: 200
+            response-timeout: 5 000
+            connect-timeout: 1500
 
   # === SEGURANÇA / JWT ===
   security:
@@ -70,6 +73,10 @@ spring:
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: 5672
     connection-timeout: 5s
+  data:
+    redis:
+      host: ${REDIS_URL:localhost}
+      port: 6379
 
 # === OTEL CONFIG (OpenTelemetry desativado por padrão) ===
 otel:
@@ -108,6 +115,12 @@ resilience4j:
         slowCallRateThreshold: 50
         slowCallDurationThreshold: 2s
 
+  timelimiter:
+    instances:
+      userServiceCB:
+        timeoutDuration: 2s
+        cancelRunningFuture: true
+
 # === LOGGING E OBSERVABILIDADE ===
 logging:
   pattern:
@@ -126,7 +139,7 @@ logging:
     io.opentelemetry: INFO
     io.micrometer: INFO
     org.springframework.cloud.gateway: INFO
+    io.github.resilience4j.circuitbreaker: INFO
     org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter: INFO
     org.springframework.data.redis: INFO
     io.lettuce.core: INFO
-

@@ -42,6 +42,8 @@ COPY --from=builder /app/application/ ./
 
 # Define variáveis de ambiente
 ENV SPRING_PROFILES_ACTIVE=""
+# Permitir configuração externa via JAVA_OPTS
+ENV JAVA_OPTS=""
 ENV LOKI_URL="loki"
 ENV KEYCLOAK_URL=${KEYCLOAK_URL}
 

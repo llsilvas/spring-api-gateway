@@ -10,7 +10,7 @@
     </parent>
     <groupId>br.dev.leandro.spring.cloud</groupId>
     <artifactId>spring-api-gateway</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <name>spring-api-gateway</name>
     <description>spring-api-gateway</description>
 

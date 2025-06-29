@@ -34,7 +34,7 @@ spring:
       # === ROTAS DEFINIDAS ===
       routes:
         - id: user-service
-          uri: http://${USER_SERVICE_URL:localhost}:8091 # Endereço do serviço de usuários
+          uri: http://${USER_SERVICE_URL} # Endereço do serviço de usuários
           predicates:
             - Path=/api/users/** # Mapeia chamadas que iniciam com /api/users
           filters:
@@ -49,8 +49,29 @@ spring:
                 name: userServiceCB
                 fallbackUri: forward:/fallback/handle
           metadata:
-            response-timeout: 5 000
+            response-timeout: 5000
             connect-timeout: 1500
+
+        # === ROTA Serviço de Eventos ===
+        - id: spring-event-service
+          uri: http://${EVENT_SERVICE_URL}
+          predicates:
+            - Path=/api/events/**
+          filters:
+            - RewritePath=/api/events/(?<segment>.*), /events/${segment}
+            - name: CustomRateLimiterFilter
+              args:
+                routeId: event-service
+                limit: 10
+                windowsMs: 5000
+            - name: CircuitBreaker
+              args:
+                name: eventServiceCB
+                fallbackUri: forward:/fallback/handle
+          metadata:
+            response-timeout: 5000
+            connect-timeout: 1500
+
 
   # === SEGURANÇA / JWT ===
   security:

@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+loki:
+  # Loki local (opcional)
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+  jobName: ${LOKI_JOB_NAME:spring-api-gateway}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    io.github.resilience4j.circuitbreaker: DEBUG
+    org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter: DEBUG
+    org.springframework.data.redis: INFO
+    io.lettuce.core: INFO

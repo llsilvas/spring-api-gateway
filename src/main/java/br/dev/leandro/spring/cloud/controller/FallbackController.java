@@ -1,5 +1,6 @@
 package br.dev.leandro.spring.cloud.controller;
 
+import br.dev.leandro.spring.cloud.dto.ErrorResponseDto;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +14,9 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
+import java.net.URI;
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
@@ -24,34 +25,54 @@ import java.util.concurrent.TimeoutException;
 public class FallbackController {
 
     @GetMapping("/handle")
-    public Mono<ResponseEntity<Map<String, Object>>> fallback(ServerWebExchange exchange) {
-        Throwable exception = exchange.getAttribute(ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR);
+    public Mono<ResponseEntity<ErrorResponseDto>> fallback(ServerWebExchange exchange) {
+        Throwable raw = exchange.getAttribute(ServerWebExchangeUtils.CIRCUITBREAKER_EXECUTION_EXCEPTION_ATTR);
+        Throwable exception = unwrap(raw);
+        Set<URI> originalUri = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
 
-        HttpStatus status;
-        String message;
+        String requestUri = (originalUri != null && !originalUri.isEmpty())
+                ? originalUri.iterator().next().getPath()
+                : exchange.getRequest().getURI().getPath();
 
-        if (exception instanceof ConnectException) {
-            status = HttpStatus.SERVICE_UNAVAILABLE;
-            message = "Circuit breaker está aberto para o serviço de usuários.";
-        } else if (exception instanceof TimeoutException) {
-            status = HttpStatus.GATEWAY_TIMEOUT;
-            message = "Timeout ao tentar acessar o serviço de usuários.";
-        } else if (exception instanceof RequestNotPermitted) {
-            status = HttpStatus.TOO_MANY_REQUESTS;
-            message = "Limite de requisições atingido para o serviço de usuários.";
-        } else {
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
-            message = "Erro desconhecido ao acessar o serviço de usuários.";
-        }
 
-        log.warn("Fallback acionado - [{}] {}", status.value(), message, exception);
+        ErrorMeta meta = resolveHttpStatusAndMessage(exception);
+        log.warn("Fallback acionado [{}] - URI: {}, Excecao: {}", meta.status.value(), requestUri,
+                exception != null ? exception.getClass().getSimpleName() : "n/a", exception);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", status.value());
-        response.put("error", status.getReasonPhrase());
-        response.put("message", message);
-        response.put("timestamp", Instant.now());
+        ErrorResponseDto response = new ErrorResponseDto(
+                meta.status.value(),
+                meta.status.getReasonPhrase(),
+                meta.message,
+                requestUri,
+                Instant.now(),
+                (exception != null) ? exception.getClass().getSimpleName() : null
+        );
 
-        return Mono.just(ResponseEntity.status(status).body(response));
+        return Mono.just(ResponseEntity.status(meta.status).body(response));
     }
+
+    private Throwable unwrap(Throwable exception) {
+        while (exception != null && exception.getCause() != null && exception != exception.getCause()) {
+            exception = exception.getCause();
+        }
+        return exception;
+    }
+
+    private ErrorMeta resolveHttpStatusAndMessage(Throwable ex) {
+        return switch (ex) {
+            case CallNotPermittedException callNotPermittedException ->
+                    new ErrorMeta(HttpStatus.SERVICE_UNAVAILABLE, "Circuit breaker ativado. Serviço indisponível.");
+            case ConnectException connectException ->
+                    new ErrorMeta(HttpStatus.SERVICE_UNAVAILABLE, "Não foi possível conectar ao serviço.");
+            case TimeoutException timeoutException ->
+                    new ErrorMeta(HttpStatus.GATEWAY_TIMEOUT, "Tempo limite excedido ao chamar o serviço.");
+            case RequestNotPermitted requestNotPermitted ->
+                    new ErrorMeta(HttpStatus.TOO_MANY_REQUESTS, "Limite de requisições atingido. Tente novamente mais tarde.");
+            case null, default ->
+                    new ErrorMeta(HttpStatus.INTERNAL_SERVER_ERROR, "Erro inesperado ao acessar o serviço.");
+        };
+    }
+
+    private record ErrorMeta(HttpStatus status, String message) {}
+
 }

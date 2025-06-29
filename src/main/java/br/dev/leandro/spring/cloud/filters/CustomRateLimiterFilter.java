@@ -1,5 +1,6 @@
 package br.dev.leandro.spring.cloud.filters;
 
+import br.dev.leandro.spring.cloud.dto.ErrorResponseDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -48,51 +49,65 @@ public class CustomRateLimiterFilter extends AbstractGatewayFilterFactory<Custom
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
             String ip = Optional.ofNullable(exchange.getRequest().getHeaders().getFirst("X-Forwarded-For"))
-                    .orElseGet(() -> exchange.getRequest().getRemoteAddress().getAddress().getHostAddress());
+                    .orElseGet(() -> Optional.ofNullable(exchange.getRequest().getRemoteAddress())
+                            .map(addr -> addr.getAddress().getHostAddress())
+                            .orElse("unknown"));
+
 
             String redisKey = String.format("rate_limit:%s:%s", config.getRouteId(), ip);
             int limit = config.getLimit();
 
+            log.debug("[RateLimiter] Executando | IP={} | Rota={} | Limite={} | Janela={}ms", ip, config.getRouteId(), limit, config.getWindowMs());
+
             return redisTemplate.opsForValue().setIfAbsent(redisKey, "1", Duration.ofMillis(config.getWindowMs()))
-                    .flatMap(isNew -> Boolean.TRUE.equals(isNew)
-                            ? Mono.just(1L)
-                            : redisTemplate.opsForValue().increment(redisKey)
-                    )
+                    .flatMap(isNew -> {
+                        log.debug("[RateLimiter] Chave Redis criada? {} | Chave={}", isNew, redisKey);
+                        return Boolean.TRUE.equals(isNew)
+                                ? Mono.just(1L)
+                                : redisTemplate.opsForValue().increment(redisKey);
+                    })
                     .flatMap(count -> {
+                        ServerHttpResponse response = exchange.getResponse();
+                        response.getHeaders().add("X-RateLimit-Limit", String.valueOf(limit));
+                        response.getHeaders().add("X-RateLimit-Remaining", String.valueOf(Math.max(0, limit - count)));
                         if (count > limit) {
-                            log.warn(":: Rate limit EXCEDIDO | IP: {} | Rota: {} | Requisições: {} | Limite: {}",
-                                    ip, config.getRouteId(), count, limit);
 
-                            Map<String, Object> body = Map.of(
-                                    "status", 429,
-                                    "error", "Too Many Requests",
-                                    "message", "Rate limit exceeded for IP " + ip,
-                                    "timestamp", Instant.now().toString()
+                            log.warn("[RateLimiter] Excedido | IP={} | Rota={} | {}/{}", ip, config.getRouteId(), count, limit);
+
+                            response.getHeaders().add("Retry-After", String.valueOf(Duration.ofMillis(config.getWindowMs()).toSeconds()));
+
+                            ErrorResponseDto body = new ErrorResponseDto(
+                                    429,
+                                    "Muitas Requisições",
+                                    "Limite de requisições excedido para o IP " + ip + ". Aguarde antes de tentar novamente.",
+                                    exchange.getRequest().getPath().toString(),
+                                    Instant.now(),
+                                    null
                             );
+                            return writeJsonResponse(exchange.getResponse(), HttpStatus.TOO_MANY_REQUESTS, body);
 
-                            byte[] bytes;
-                            try {
-                                bytes = mapper.writeValueAsBytes(body);
-                            } catch (JsonProcessingException e) {
-                                return Mono.error(e);
-                            }
-
-                            ServerHttpResponse response = exchange.getResponse();
-                            response.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-                            response.getHeaders().add("Content-Type", "application/json");
-
-                            return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
                         } else if (count == 1) {
-                            log.info(":: Iniciando nova janela de rate limit | IP: {} | Rota: {} | Limite: {} | Janela: {}ms",
-                                    ip, config.getRouteId(), limit, config.getWindowMs());
+                            log.info("[RateLimiter] Nova janela | IP={} | Rota={} | Limite={} | Janela={}ms", ip, config.getRouteId(), limit, config.getWindowMs());
                         } else if (count == limit) {
-                            log.info(":: Última requisição antes de exceder o limite | IP: {} | Rota: {} | Requisições: {}/{}",
-                                    ip, config.getRouteId(), count, limit);
+                            log.info("[RateLimiter] Última requisição antes do limite | IP={} | Rota={} | {}/{}", ip, config.getRouteId(), count, limit);
+                        } else {
+                            log.debug("[RateLimiter] Permitida | IP={} | Rota={} | Requisições={}/{}", ip, config.getRouteId(), count, limit);
                         }
 
                         return chain.filter(exchange);
                     });
         };
+    }
+
+    private Mono<Void> writeJsonResponse(ServerHttpResponse response, HttpStatus status, Object body) {
+        try {
+            byte[] bytes = mapper.writeValueAsBytes(body);
+            response.setStatusCode(status);
+            response.getHeaders().add("Content-Type", "application/json");
+            return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
+        } catch (JsonProcessingException e) {
+            return Mono.error(e);
+        }
     }
 
 }

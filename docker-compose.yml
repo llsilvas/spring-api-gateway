@@ -2,30 +2,23 @@ services:
   spring-api-gateway:
     image: spring-api-gateway:latest
     container_name: spring-api-gateway
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.5'
-          memory: 128M
     ports:
       - "9999:9999"
+    env_file:
+      - .env.docker
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-      - SPRING_CONFIG_SERVER=${SPRING_CONFIG_SERVER}
-      - LOKI_URL="loki"
-      - KEYCLOAK_URL=${KEYCLOAK_URL}
-      - SPRING_RABBITMQ_HOST=${SPRING_RABBITMQ_HOST}
+      - SPRING_PROFILES_ACTIVE
+      - SPRING_CONFIG_SERVER
+      - LOKI_URL
+      - KEYCLOAK_URL
+      - SPRING_RABBITMQ_HOST
       - OTEL_SERVICE_NAME=spring-api-gateway
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_LOGS_EXPORTER=none
       - OTEL_METRICS_EXPORTER=none
-      - USER_SERVICE_URL=spring-user
-      - REDIS_URL=redis
-      - JAVA_OPTS=${JAVA_OPTS}
+      - REDIS_URL
+      - JAVA_OPTS
     networks:
       - labs
 networks:

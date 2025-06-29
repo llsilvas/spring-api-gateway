@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+loki:
+  # Loki local (opcional)
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+  jobName: ${LOKI_JOB_NAME:spring-api-gateway}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    io.github.resilience4j.circuitbreaker: INFO
+    org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter: INFO
+    org.springframework.data.redis: INFO
+    io.lettuce.core: INFO

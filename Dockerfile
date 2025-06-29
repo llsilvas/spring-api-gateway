@@ -51,4 +51,5 @@ ENV KEYCLOAK_URL=${KEYCLOAK_URL}
 EXPOSE 8091
 
 # Inicia a aplicação com o launcher do Spring Boot
-ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar","-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -javaagent:/app/opentelemetry-javaagent.jar -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+
